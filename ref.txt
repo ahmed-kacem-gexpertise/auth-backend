@@ -1,1 +1,0 @@
-https://www.linkedin.com/pulse/create-flask-app-use-postgresql-database-gitau-harrison

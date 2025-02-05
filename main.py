@@ -1,7 +1,15 @@
-from flask import Flask
+from app import app
 
-app = Flask(__name__)
+from app.models import User
 
-@app.route("/")
-def hello_world():
-    return ""
+from app import db
+
+
+
+
+
+@app.shell_context_processor
+
+def make_shell_context():
+
+    return dict(db=db, User=User)
