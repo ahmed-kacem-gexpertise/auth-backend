@@ -1,8 +1,11 @@
 from app import db 
 
+import enum
 
 
-
+class UserRoleEnum(enum.Enum):
+    admin = 'admin'
+    collector = 'user'
 
 class User(db.Model):
     __tablename__ = "users"

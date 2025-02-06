@@ -12,6 +12,9 @@ from flask import  request, jsonify, session,flash
 
 
 
+from flask_jwt_extended import create_access_token
+from flask_jwt_extended import get_jwt_identity
+from flask_jwt_extended import jwt_required
 
 
 @app.route('/')
@@ -39,11 +42,15 @@ def login_user():
         return jsonify({"error": "Unauthorized"}), 401
     
     
-    return jsonify({
-        "id": user.id,
-        "email": user.email
-    })
+    access_token = create_access_token(identity=email)
+    return jsonify(access_token=access_token)
 
+@app.route("/protected", methods=["GET"])
+@jwt_required()
+def protected():
+    # Access the identity of the current user with get_jwt_identity
+    current_user = get_jwt_identity()
+    return jsonify(logged_in_as=current_user), 200
 
 
 
@@ -55,7 +62,8 @@ def register_user():
     email = request.json["email"]
     password = request.json["password"]
 
-   
+    if User.query.filter_by(email=email).first() :
+        return jsonify({"error": "email already exists"}), 403
     hashed_password = bcrypt.generate_password_hash(password,10).decode('utf8')
     new_user = User(email=email, password=hashed_password)
     db.session.add(new_user)
