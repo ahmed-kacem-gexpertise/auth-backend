@@ -1,15 +1,13 @@
 
 
-from app import app, db
+from app import app, db , bcrypt
 
-from flask import render_template, url_for, redirect, flash
 
-from app.forms import LoginForm, RegistrationForm
 
-from flask_login import login_user, logout_user, current_user, login_required
 
 from app.models import User
 
+from flask import  request, jsonify, session,flash
 
 
 
@@ -17,16 +15,8 @@ from app.models import User
 
 
 @app.route('/')
-
-@app.route('/profile')
-
-@login_required
-
-def profile():
-
-    """Profile page"""
-
-    return render_template('profile.html', title='Profile')
+def home():
+    return jsonify({"message": "Welcome to the API"})
 
 
 
@@ -34,84 +24,50 @@ def profile():
 
 
 
-@app.route('/login', methods=['GET', 'POST'])
 
-def login():
+@app.route("/login", methods=["POST"])
+def login_user():
+    email = request.json["email"]
+    password = request.json["password"]
 
-    """Login URL"""
-
-    if current_user.is_authenticated:
-
-        return redirect(url_for('profile'))
-
-    form = LoginForm()
-
-    if form.validate_on_submit():
-
-        user = User.query.filter_by(username=form.username.data).first()
-
-        if user is None or not user.check_password(form.password.data):
-
-            flash('Invalid username or password')
-
-            return redirect(url_for('login'))
-
-        login_user(user, remember=form.remember_me.data)
-
-        flash('Welcome')
-
-        return redirect(url_for('profile'))
-
-    return render_template('login.html', title='Login', form=form)
+    user = User.query.filter_by(email=email).first()
+    
+    if user is None:
+        return jsonify({"error": "Unauthorized"}), 401
+    #checking if the password is the same as hashed password
+    if not bcrypt.check_password_hash(user.password, password):
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    
+    return jsonify({
+        "id": user.id,
+        "email": user.email
+    })
 
 
 
 
 
 
+@app.route("/register", methods=["POST"])
+def register_user():
+    #gets email and password input
+    email = request.json["email"]
+    password = request.json["password"]
 
-@app.route('/register', methods=['GET', 'POST'])
-
-def register():
-
-    """Registration URL"""
-
-    if current_user.is_authenticated:
-
-        return redirect(url_for('profile'))
-
-    form = RegistrationForm()
-
-    if form.validate_on_submit():
-
-        user = User(username=form.username.data)
-
-        user.set_password(form.password.data)
-
-        db.session.add(user)
-
-        db.session.commit()
-
-        flash('Registered successfully. Please log in to continue')
-
-        return redirect(url_for('login'))
-
-    return render_template('register.html', title='Register', form=form)
+   
+    hashed_password = bcrypt.generate_password_hash(password,10).decode('utf8')
+    new_user = User(email=email, password=hashed_password)
+    db.session.add(new_user)
+    db.session.commit()
+    
+    
+    return jsonify({
+        "id": new_user.id,
+        "email": new_user.email
+    })
 
 
 
 
 
-
-
-@app.route('/logout')
-
-@login_required
-
-def logout():
-
-    """Used to log out a user"""
-
-    logout_user()
-
-    return redirect(url_for('login'))

@@ -4,12 +4,13 @@ from app.models import User
 
 from app import db
 
+from flask_session import Session 
+from flask_bcrypt import Bcrypt
+
+from flask_cors import CORS
+
+CORS(app, supports_credentials=True)
 
 
-
-
-@app.shell_context_processor
-
-def make_shell_context():
-
-    return dict(db=db, User=User)
+if __name__ == '__main__':
+    app.run(port=5555, debug=True)
