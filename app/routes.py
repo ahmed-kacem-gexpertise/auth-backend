@@ -23,7 +23,7 @@ def home():
     claims = get_jwt()
     user_identity=get_jwt_identity()
     if claims:
-        return jsonify(logged_in_as=user_identity,id=claims['id'])
+        return jsonify(logged_in_as=user_identity,id=claims['role'])
     else:
         return jsonify(logged_in_as="anonymous user")
 
@@ -56,10 +56,10 @@ def login_user():
     if user is None:
         return jsonify({"error": "Unauthorized"}), 401
     #checking if the password is the same as hashed password
-    if not bcrypt.check_password_hash(user.password, password):
+    if not user.verify_password(password):
         return jsonify({"error": "Unauthorized"}), 401
     
-    additional_claims = {"id": user.id}
+    additional_claims = {"role": user.role}
     access_token = create_access_token(identity=email,additional_claims=additional_claims)
     return jsonify(access_token=access_token)
 
@@ -79,11 +79,10 @@ def register_user():
     #gets email and password input
     email = request.json["email"]
     password = request.json["password"]
-
     if User.query.filter_by(email=email).first() :
         return jsonify({"error": "email already exists"}), 403
-    hashed_password = bcrypt.generate_password_hash(password,10).decode('utf8')
-    new_user = User(email=email, password=hashed_password)
+    new_user = User(email=email, role=False)
+    new_user.set_password(password)
     db.session.add(new_user)
     db.session.commit()
     
@@ -94,6 +93,24 @@ def register_user():
     })
 
 
+@app.route("/userProfile",methods=["GET"])
+@jwt_required()
+def user_info():
+    
+    user_identity=get_jwt_identity()
+    user_info= User.query.filter_by(email=user_identity).first()
+    return jsonify(email=user_info.email , role=user_info.role )
 
-
-
+@app.route("/changeUserPassword",methods=["POST"])
+@jwt_required()
+def change_passowrd():
+    old_password=request.json['old_password']
+    new_password=request.json['new_password']
+    user_identity=get_jwt_identity()
+    user= User.query.filter_by(email=user_identity).first()
+    if old_password != new_password and user.verify_password(old_password):
+        user.set_password()
+        db.session.commit()
+        return jsonify({"msg":"password changed successfuly","state":True})
+    return jsonify({"msg":"verify your credentials","state":False})
+        
