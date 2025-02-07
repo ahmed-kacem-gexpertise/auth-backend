@@ -48,27 +48,24 @@ def refresh_expiring_jwts(response):
 
 @app.route("/login", methods=["POST"])
 def login_user():
-    email = request.json["email"]
-    password = request.json["password"]
+   
+        email = request.json["email"]
+        password = request.json["password"]
 
-    user = User.query.filter_by(email=email).first()
+        user = User.query.filter_by(email=email).first()
+        
+        if user is None:
+            return jsonify({"error": "Unauthorized"}), 401
+        #checking if the password is the same as hashed password
+        if not user.verify_password(password):
+            return jsonify({"error": "Unauthorized"}), 401
+        
+        additional_claims = {"role": user.role}
+        access_token = create_access_token(identity=email,additional_claims=additional_claims)
+        return jsonify({"access_token":access_token,"msg":"user connected successfuly","status":"success"})
     
-    if user is None:
-        return jsonify({"error": "Unauthorized"}), 401
-    #checking if the password is the same as hashed password
-    if not user.verify_password(password):
-        return jsonify({"error": "Unauthorized"}), 401
     
-    additional_claims = {"role": user.role}
-    access_token = create_access_token(identity=email,additional_claims=additional_claims)
-    return jsonify(access_token=access_token)
 
-@app.route("/protected", methods=["GET"])
-@jwt_required()
-def protected():
-    # Access the identity of the current user with get_jwt_identity
-    current_user = get_jwt_identity()
-    return jsonify(logged_in_as=current_user), 200
 
 
 
@@ -77,21 +74,24 @@ def protected():
 @app.route("/register", methods=["POST"])
 def register_user():
     #gets email and password input
-    email = request.json["email"]
-    password = request.json["password"]
-    if User.query.filter_by(email=email).first() :
-        return jsonify({"error": "email already exists"}), 403
-    new_user = User(email=email, role=False)
-    new_user.set_password(password)
-    db.session.add(new_user)
-    db.session.commit()
-    
-    
-    return jsonify({
-        "id": new_user.id,
-        "email": new_user.email
-    })
-
+    try:
+        email = request.json["email"]
+        password = request.json["password"]
+        if User.query.filter_by(email=email).first() :
+            return jsonify({"error": "email already exists"}), 403
+        new_user = User(email=email, role=False)
+        new_user.set_password(password)
+        db.session.add(new_user)
+        db.session.commit()
+        
+        
+        return jsonify({
+            "msg":"user registered successfuly",
+            "id": new_user.id,
+            "email": new_user.email
+        })
+    except ValueError as e:
+        return jsonify({"error":str(e)}),400
 
 @app.route("/userProfile",methods=["GET"])
 @jwt_required()
@@ -109,7 +109,7 @@ def change_passowrd():
     user_identity=get_jwt_identity()
     user= User.query.filter_by(email=user_identity).first()
     if old_password != new_password and user.verify_password(old_password):
-        user.set_password()
+        user.set_password(new_password)
         db.session.commit()
         return jsonify({"msg":"password changed successfuly","state":True})
     return jsonify({"msg":"verify your credentials","state":False})
