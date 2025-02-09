@@ -1,33 +1,23 @@
 from flask import Flask
-from dotenv import load_dotenv
 from flask_sqlalchemy import SQLAlchemy
+from .db_utils import create_database
+from .extensions import db , jwt , migrate , bcrypt,endpoints
+from .api.resources.auth_api import auth_ns
+from .api.resources.user_api import user_ns
 
-from flask_migrate import Migrate
-from flask_bcrypt import Bcrypt
-import sys
-from flask_jwt_extended import JWTManager
-import os
-load_dotenv()
-
-# setting path
-sys.path.append('..')
-from config import Config
-
-
-
+from .config import Config
 
 app = Flask(__name__)
+def create_app():
 
-app.config.from_object(Config)
-
-bcrypt = Bcrypt( app )
-
-db = SQLAlchemy(app)
-migrate = Migrate(app, db)
-
-jwt = JWTManager(app)
-
-
-from app import routes, models
-
-from app.models import User
+    app.config.from_object(Config)
+    db.init_app(app)
+    jwt.init_app(app)
+    bcrypt.init_app(app)
+    migrate.init_app(app, db)
+    endpoints.init_app(app)
+    endpoints.add_namespace(auth_ns)
+    endpoints.add_namespace(user_ns)
+    
+    create_database(app)
+    return app

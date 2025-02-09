@@ -1,14 +1,14 @@
 # setup.py
 import os
-from app import db, app
-from app import User  # Import your User model
+from .models.user_model import User
+from .extensions import db
 
-def create_databases():
+def create_database(app):
     """Creates databases and injects the main admin account into the user db."""
     
     with app.app_context():
         db.create_all()
-        admin_exists = db.session.query(User).filter_by(role=True).first()
+        admin_exists = db.session.query(User).filter_by(admin=True).first()
 
         if not admin_exists:
             admin_email = os.getenv("ADMIN_EMAIL")
@@ -24,9 +24,9 @@ def create_databases():
                 firstName=admin_firstname,
                 lastName=admin_lastname,
                 email=admin_email,
-                role=True,
+                admin=True,
             )
             admin.set_password(admin_password)
             db.session.add(admin)
             db.session.commit()
-create_databases()
+

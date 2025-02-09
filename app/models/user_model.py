@@ -1,5 +1,5 @@
-from app import db , bcrypt
-import re
+from ..extensions import db , bcrypt
+
 from sqlalchemy.orm import validates
 
 
@@ -11,26 +11,28 @@ class User(db.Model):
     lastName= db.Column( db.String(64) )
     email = db.Column( db.String(64), unique = True ) #each email given has to be unique
     password = db.Column(db.String(128)) 
-    role=db.Column(db.Boolean , default=False)
+    admin=db.Column(db.Boolean , default=False)
 
     
 
     def set_password(self,password):
         hashed_password = bcrypt.generate_password_hash(password,10).decode('utf8')
         self.password=hashed_password
+        db.session.commit()
+
     def verify_password(self,password):
-        
         return bcrypt.check_password_hash(self.password, password)
-    
-    @validates("email")
-    def validate_email(self, key, email):
-        """Validates the email format before inserting/updating."""
-        if not email:
-            raise ValueError("Email is required")
-        if not re.match(r"[^@]+@[^@]+\.[^@]+", email):
-            raise ValueError("Invalid email format")
-        return email
-            
+        
+    def save(self):
+        db.session.add(self)
+        db.session.commit()
+    def update_info(self,**kwargs):
+        for key, value in kwargs.items():
+            if hasattr(self, key) and value is not None:  
+                setattr(self, key, value)
+        db.session.commit()
+
+   
 
 
     
