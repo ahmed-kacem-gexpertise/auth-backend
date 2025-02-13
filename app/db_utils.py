@@ -25,6 +25,7 @@ def create_database(app):
                 lastName=admin_lastname,
                 email=admin_email,
                 admin=True,
+                is_confirmed=True
             )
             admin.set_password(admin_password)
             db.session.add(admin)

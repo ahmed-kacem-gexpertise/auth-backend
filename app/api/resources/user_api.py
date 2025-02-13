@@ -1,12 +1,13 @@
 from flask_jwt_extended import jwt_required
 from flask_restx import Namespace, Resource, fields
 from flask import request
-from ..services.user_service import delete_user,get_user_info,update_user,change_user_password
+from ..services.user_service import get_user_info,update_user,change_user_password
 from ..api_schemas import UpdateUserSchema
+from marshmallow import ValidationError
 
 register_user_schema=UpdateUserSchema()
 
-user_ns = Namespace("user", description="user CRUD API",security="Bearer Auth")
+user_ns = Namespace("user", description="user CRUD API")
 user_info_model=user_ns.model(
     "userInfo",
     {  
@@ -35,15 +36,7 @@ change_user_password_model= user_ns.model(
 )
 @user_ns.route("/<int:user_id>")
 class UserResource(Resource):
-    @user_ns.doc(security="Bearer Auth") 
-    @jwt_required()
-    def delete(self, user_id):
-        
-        success = delete_user(user_id)
-        if success:
-            return {"message": "User deleted and token revoked"}, 200
-        return {"error": "Cannot Delete User"}, 404
-    @user_ns.doc(security="Bearer Auth") 
+    
     @jwt_required()
     @user_ns.marshal_with(user_info_model)
     def get (self,user_id):
@@ -51,27 +44,29 @@ class UserResource(Resource):
         if user_info:
             return user_info
         return {"error":"unauthorized"},401
-    @user_ns.doc(security="Bearer Auth") 
     @jwt_required()
     @user_ns.expect(change_user_info_model)
     def put(self,user_id):
-        data=register_user_schema.load(request.json)
-        if not data:
-            return {"msg":"no changes were made "}
-        updated = update_user(data,user_id)
-        if updated : 
-            return {"msg":"user updated successfuly"},200
-        return {
-            "error": "there was an error updating the info "
-        }
-            
+        try:
+            data=register_user_schema.load(request.json)
+            if not data:
+                return {"msg":"no changes were made "}
+            updated = update_user(data,user_id)
+            if updated : 
+                return {"msg":"user updated successfuly"},200
+            return {
+                "error": "there was an error updating the info "
+            }
+        
+        except ValidationError as err:
+            return {"errors": err.messages}, 400
+@user_ns.route("/")
 @user_ns.route("/changePassword")
 class ChangeUserPassword(Resource):
     
-    @user_ns.doc(security="Bearer Auth") 
     @jwt_required()
     @user_ns.expect(change_user_password_model)
-    def post(self):
+    def put(self):
         data=request.json
         changedPassword=change_user_password(data)
         if changedPassword:

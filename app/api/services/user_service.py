@@ -1,12 +1,12 @@
 from ...models.user_model import User
-from ...models.black_listed_tokens import BlacklistedToken
 
 from ...extensions import db
 from flask_jwt_extended import get_jwt ,get_jwt_identity
 def validate_user_path(user_id):
     logged_in_user_id = int(get_jwt_identity() ) 
-    is_logged_in_user_admin=get_jwt()['admin']
-    user = User.query.get(user_id)  
+    user = User.query.get(user_id) 
+    logged_in_user=  User.query.get(logged_in_user_id)
+    is_logged_in_user_admin=logged_in_user.admin
     
     if not user :
         return None 
@@ -25,20 +25,7 @@ def add_user(data):
     return True
     
 
-def delete_user(user_id):
-    user_to_delete=validate_user_path(user_id)
-    if  user_to_delete:
-        jti = get_jwt()["jti"]
 
-        # Blacklist the current token
-        blacklisted_token = BlacklistedToken(jti=jti)
-        db.session.add(blacklisted_token)
-        
-        # Delete user from database
-        db.session.delete(user_to_delete)
-        db.session.commit()
-        return True
-    return False
 def get_user_info(user_id):
     user = validate_user_path(user_id)
     return user
@@ -59,6 +46,7 @@ def change_user_password(data):
     if old_password != new_password and user.verify_password(old_password):
         user.set_password(new_password)
         return True
-    return False        
+    return False   
+
     
     
