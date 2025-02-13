@@ -26,6 +26,7 @@ login_model = auth_ns.model(
     {
         "email": fields.String(required=True, description="User's email",example="example@gmail.com"),
         "password": fields.String(required=True, description="User's password"),
+        "rememberMe":fields.String(default=False, description="User's password"),
     },
 )
 reset_password_model=auth_ns.model(
@@ -61,7 +62,7 @@ class Login(Resource):
     def post(self):
         try:
             data = user_schema.load(request.json)
-            resp = authenticate(data["email"], data["password"])
+            resp = authenticate(data["email"], data["password"],data["rememberMe"])
             if resp:
                 return resp
             return {"message": "Invalid credentials"}, 401
