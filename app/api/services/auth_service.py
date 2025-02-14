@@ -14,7 +14,7 @@ def authenticate(email, password,rememberMe):
         access_expires_in = timedelta(days=30)  
         refresh_expires_in = timedelta(days=30) 
     else:
-        access_expires_in = timedelta(minutes=15) 
+        access_expires_in = timedelta(minutes=59) 
         refresh_expires_in = timedelta(days=7)  
     if not user :
         return None
@@ -50,7 +50,10 @@ def confirm_user_email(email):
     return None
 def check_user_exists(email):
     user = User.query.filter_by(email=email).first()
-    if user:
+    if not user :
+        return None
+    if user and user.is_confirmed:
         return user
-    return None
+    return False
+    
     

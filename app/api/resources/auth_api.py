@@ -127,9 +127,9 @@ class ForgotPassword(Resource):
         
         user = check_user_exists(email)
         if user == False :
-            return {"message": "please confirm your email before logging in "}
+            return {"error": "please confirm your email before logging in "}
         if  user== None:
-            return {"message": "No user with that email."}, 404
+            return {"error": "No user with that email."}, 404
         try:
             email_service.send_password_reset_email(email)
             return {"message": "Password reset email has been sent!"}, 200
