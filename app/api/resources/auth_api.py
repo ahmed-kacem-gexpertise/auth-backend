@@ -6,6 +6,8 @@ from ..services.user_service import add_user
 from flask_jwt_extended import get_jwt_identity ,create_access_token,set_access_cookies,jwt_required
 from ..api_schemas import LoginUserSchema
 from ..services.auth_service import authenticate ,confirm_user_email,check_user_exists
+from ..services.user_service import get_user_info
+
 from ...extensions import email_service
 from flask_jwt_extended import unset_jwt_cookies , jwt_required
 register_user_schema = RegisterUserSchema()
@@ -14,6 +16,15 @@ parser = reqparse.RequestParser()
 parser.add_argument('token', type=str, required=True, help="The confirmation token")
 
 user_schema=LoginUserSchema()
+user_info_model=auth_ns.model(
+    "userInfo",
+    {  
+        "firstName":fields.String(required=True, description="User's firstName"),
+        "lastName":fields.String(required=True, description="User's lastName"),
+        "email": fields.String(required=True, description="User's email",example="example@gmail.com"),
+
+    },
+    )
 register_model=auth_ns.model(
     "register",
     {  
@@ -154,3 +165,11 @@ class Logout(Resource):
         unset_jwt_cookies(resp)
 
         return resp 
+@auth_ns.route("/user")
+class UserAuth(Resource):
+    @auth_ns.marshal_with(user_info_model)
+    @jwt_required()
+    def get(self):
+        user_id=int(get_jwt_identity())
+        user=get_user_info(user_id)
+        return user

@@ -36,6 +36,8 @@ class User(db.Model):
     def confirm_user(self):
         self.is_confirmed=True
         db.session.commit()
+    
+
 
 
    
