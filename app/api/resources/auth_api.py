@@ -1,4 +1,4 @@
-from flask_restx import Namespace, Resource, fields
+from flask_restx import Namespace, Resource, fields, reqparse
 from flask import request,jsonify
 from marshmallow import ValidationError
 from ..api_schemas import RegisterUserSchema
@@ -7,8 +7,11 @@ from flask_jwt_extended import get_jwt_identity ,create_access_token,set_access_
 from ..api_schemas import LoginUserSchema
 from ..services.auth_service import authenticate ,confirm_user_email,check_user_exists
 from ...extensions import email_service
+from flask_jwt_extended import unset_jwt_cookies , jwt_required
 register_user_schema = RegisterUserSchema()
 auth_ns = Namespace("auth", description="Authentication API")
+parser = reqparse.RequestParser()
+parser.add_argument('token', type=str, required=True, help="The confirmation token")
 
 user_schema=LoginUserSchema()
 register_model=auth_ns.model(
@@ -33,6 +36,7 @@ reset_password_model=auth_ns.model(
     "reset password",
     {
         "new_password":fields.String(required=True, description="User's new password"),
+        "confirm_password":fields.String(required=True, description="User confirmation password")
     },
 )
 forgot_password_model=auth_ns.model(
@@ -62,6 +66,8 @@ class Login(Resource):
     def post(self):
         try:
             data = user_schema.load(request.json)
+            if not "rememberMe" in data :
+                data["rememberMe"]=False
             resp = authenticate(data["email"], data["password"],data["rememberMe"])
             if resp:
                 return resp
@@ -83,17 +89,21 @@ class Register(Resource):
                 return {"error":"user already exists"},401
         except ValidationError as err :
             return {"errors": err.messages}, 400
-@auth_ns.route("/confirm/<token>")
+@auth_ns.route("/confirm")
 class Confirm(Resource):
-    def post(self,token):
+    @auth_ns.expect(parser)
+    def get(self):
+        args = parser.parse_args()  
+        token = args['token']
+
         try:
-            email = email_service.serializer.loads(token, salt='email-confirm', max_age=3600)  # Token expires after 1 hour
+            email = email_service.serializer.loads(token, salt='email-confirm') 
         except Exception as e:
-            return {"message": "The confirmation link is invalid or has expired.",'error':e.message}, 400
-        user=confirm_user_email(email)
+            return {"message": "The confirmation link is invalid or has expired.", "error": str(e)}, 400  
+        
+        user = confirm_user_email(email)  
         if user:
             return {"message": "Your email has been confirmed!"}, 200
-        
         else:
             return {"message": "User not found."}, 404
 @auth_ns.route("/forgot_password")
@@ -103,22 +113,26 @@ class ForgotPassword(Resource):
     def post (self):
         data = request.get_json()
         email = data.get("email")
-
+        
         user = check_user_exists(email)
-        if not user:
+        if user == False :
+            return {"message": "please confirm your email before logging in "}
+        if  user== None:
             return {"message": "No user with that email."}, 404
         try:
             email_service.send_password_reset_email(email)
             return {"message": "Password reset email has been sent!"}, 200
         except Exception as e :
             return {"error": "there was an error sending the reset password email please try again "},401
-@auth_ns.route("/resetPassword/<token>")
+@auth_ns.route("/resetPassword")
 class Reset(Resource):
-    @auth_ns.expect(reset_password_model)
-    
-    def post (self,token):
+    @auth_ns.expect(reset_password_model,parser)
+    def post (self):
+        args = parser.parse_args()  
+        token = args['token']
+
         try:
-            email = email_service.serializer.loads(token, salt='password-reset', max_age=900)  
+            email = email_service.serializer.loads(token, salt='password-reset', max_age=3600)  
         except Exception as e:
             return {"message": "The reset link is invalid or has expired."}, 400
 
@@ -126,9 +140,17 @@ class Reset(Resource):
         if not user:
             return {"message": "User not found."}, 404
 
-        # Assuming you pass the new password in the request body
         data = request.get_json()
         new_password = data.get("new_password")
         user.set_password(new_password)
         
         return {"message": "Your password has been reset successfully!"}, 200
+@auth_ns.route("/logout")
+class Logout(Resource):
+    @jwt_required()  
+    def post(self):
+        resp = jsonify({"message": "Successfully logged out"})
+        
+        unset_jwt_cookies(resp)
+
+        return resp 

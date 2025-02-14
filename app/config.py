@@ -27,6 +27,9 @@ class Config(object):
     SQLALCHEMY_DATABASE_URI = os.getenv('DB_URL') 
 
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    
+    #JWT configurations
+
     JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY')
     JWT_ACCESS_TOKEN_EXPIRES=timedelta(hours=1)
     JWT_REFRESH_TOKEN_EXPIRES=timedelta(days=7)
@@ -44,13 +47,17 @@ class Config(object):
     "withCredentials": True  # Allows Swagger to send cookies with requests
     }
     JWT_COOKIE_DOMAIN ="127.0.0.1"
+    #mail configurations
+
     MAIL_SERVER = 'smtp.gmail.com'
-    MAIL_PORT = 587  # Use 587 for TLS or 465 for SSL
+    MAIL_PORT = 587  #  587 for TLS or 465 for SSL
     MAIL_USE_TLS = True
-    MAIL_USE_SSL = False  # Set to True if using SSL (port 465)
-    MAIL_USERNAME = os.getenv('MAIL_USERNAME')  # Set this as an environment variable
-    MAIL_PASSWORD = os.getenv('MAIL_PASSWORD')  # Use App Password for Gmail if 2FA is enabled
-    MAIL_DEFAULT_SENDER = os.getenv('MAIL_USERNAME')  # Default sender address (usually your email)
-    BASE_URL="http://127.0.0.1:5000"
+    MAIL_USE_SSL = False  #  True if using SSL (port 465)
+    MAIL_USERNAME = os.getenv('MAIL_USERNAME')  
+    MAIL_PASSWORD = os.getenv('MAIL_PASSWORD')  #  App Password for Gmail 
+    MAIL_DEFAULT_SENDER = os.getenv('MAIL_USERNAME')  # Default sender address 
+
+    #frontend base url
+    BASE_URL="http://127.0.0.1:3000"
 
     

@@ -16,7 +16,7 @@ class EmailService:
     def send_confirmation_email(self, user_email):
         """Generate a confirmation link and send it to the user email."""
         token = self.serializer.dumps(user_email, salt='email-confirm')
-        confirm_url = f"{current_app.config['BASE_URL']}/confirm/{token}"
+        confirm_url = f"{current_app.config['BASE_URL']}/confirm?token={token}"
 
         msg = Message("Please Confirm Your Email Address", recipients=[user_email])
         msg.body = f"Click the link to confirm your email: {confirm_url}"
@@ -25,7 +25,7 @@ class EmailService:
     def send_password_reset_email(self, user_email):
         """Generate a password reset link and send it to the user email."""
         token = self.serializer.dumps(user_email, salt='password-reset')
-        reset_url = f"{current_app.config['BASE_URL']}/reset_password/{token}"
+        reset_url = f"{current_app.config['BASE_URL']}/resetPassword?token={token}"
 
         msg = Message("Password Reset Request", recipients=[user_email])
         msg.body = f"Click the link to reset your password: {reset_url}"

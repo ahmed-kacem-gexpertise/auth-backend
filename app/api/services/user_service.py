@@ -3,16 +3,28 @@ from ...models.user_model import User
 from ...extensions import db
 from flask_jwt_extended import get_jwt ,get_jwt_identity
 def validate_user_path(user_id):
-    logged_in_user_id = int(get_jwt_identity() ) 
-    user = User.query.get(user_id) 
-    logged_in_user=  User.query.get(logged_in_user_id)
-    is_logged_in_user_admin=logged_in_user.admin
-    
-    if not user :
-        return None 
+    try:
+        logged_in_user_id = int(get_jwt_identity())  
+        user_id = int(user_id) 
+    except ValueError:
+        return {"message": "Invalid user ID"}, 400  
+
+    user = User.query.get(user_id)
+    logged_in_user = User.query.get(logged_in_user_id)
+
+    if not user:
+        return {"message": "User not found"}, 404
+
+    if not logged_in_user:
+        return {"message": "Logged-in user not found"}, 404
+
+    is_logged_in_user_admin = getattr(logged_in_user, 'admin', False)  
+
     if is_logged_in_user_admin or logged_in_user_id == user_id:
-        return user
-    return False
+        return user 
+
+    return {"message": "Unauthorized access"}, 403 
+
 
 def add_user(data):
     if User.query.filter_by(email=data["email"]).first() :

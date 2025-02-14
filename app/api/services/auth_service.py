@@ -16,7 +16,11 @@ def authenticate(email, password,rememberMe):
     else:
         access_expires_in = timedelta(minutes=15) 
         refresh_expires_in = timedelta(days=7)  
-    if user and user.verify_password(password):  
+    if not user :
+        return None
+    if not user.is_confirmed :
+        return False
+    if user  and user.verify_password(password):  
          
         access_token = create_access_token(identity=str(user.id),expires_delta=access_expires_in)
         refresh_token   = create_refresh_token(identity=str(user.id),expires_delta=refresh_expires_in)
@@ -35,8 +39,9 @@ def authenticate(email, password,rememberMe):
         
         return resp
     
-    
     return None
+    
+    
 def confirm_user_email(email):
     user = User.query.filter_by(email=email).first()
     if user:
